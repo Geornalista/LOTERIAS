@@ -1,115 +1,125 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Simulador Loterias 2026</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <title>Loterias 2026 - Simulador & Dashboard</title>
+  
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json" />
-  <meta id="theme-color-meta" name="theme-color" content="#4CAF50" />
+  <meta id="theme-color-meta" name="theme-color" content="#209869" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
+    :root {
+      /* Cores Padrão / Mega-Sena */
+      --primary-color: #209869;
+      --primary-hover: #177a54;
+      --bg-color: #f4f7f6;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --text-muted: #666666;
+      --border-color: #dddddd;
+    }
+
     body {
-      font-family: sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start; /* Melhor para quando o resultado crescer */
-      min-height: 100vh;
-      background-color: #f0f0f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
       margin: 0;
-      padding: 20px;
+      padding: 0;
       box-sizing: border-box;
+      transition: background-color 0.3s;
     }
 
     .container {
-      background-color: white;
+      max-width: 1000px;
+      margin: 0 auto;
       padding: 20px;
+    }
+
+    /* --- NAVEGAÇÃO --- */
+    .header-nav {
+      background-color: var(--card-bg);
+      padding: 15px;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      text-align: center;
-      width: 100%;
-      max-width: 600px;
-    }
-
-    /* Estilos das Abas */
-    .tabs {
-      display: flex;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
       margin-bottom: 20px;
-      border-radius: 5px;
-      overflow: hidden;
-      border: 1px solid #ccc;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
     }
 
-    .tab-button {
-      flex: 1;
-      padding: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
+    .lottery-tabs, .mode-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: inherit;
       border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      font-weight: bold;
+    }
+
+    .lot-btn {
+      padding: 10px 20px;
       background-color: #eee;
       color: #555;
-      transition: background-color 0.3s, color 0.3s;
-      margin-top: 0;
-      border-radius: 0;
+      font-size: 1rem;
     }
+    .lot-btn[data-lot="mega"].active { background-color: #209869; color: white; }
+    .lot-btn[data-lot="dupla"].active { background-color: #A61324; color: white; }
+    .lot-btn[data-lot="lotofacil"].active { background-color: #930089; color: white; }
 
-    .tab-button#btn-mega.active {
-      background-color: #4CAF50;
+    .mode-btn {
+      padding: 8px 30px;
+      background-color: transparent;
+      color: var(--text-muted);
+      border: 2px solid var(--border-color);
+      font-size: 0.95rem;
+    }
+    .mode-btn.active {
+      background-color: var(--primary-color);
       color: white;
+      border-color: var(--primary-color);
     }
 
-    .tab-button#btn-dupla.active {
-      background-color: #A61324;
-      color: white;
-    }
-
-    .tab-button#btn-lotofacil.active {
-      background-color: #930089;
-      color: white;
-    }
-
-    .tab-content {
-      display: none;
-      animation: fadeIn 0.3s;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    h1 {
-      color: #333;
-      font-size: 1.5rem;
-    }
-
-    .lottery-logo {
-      max-width: 100%;
-      height: auto;
-      max-height: 60px;
-      margin: 10px auto 0 auto;
-      display: block;
-    }
-
-    .subtitle {
-      color: #555;
-      margin-top: 5px;
+    /* --- COMPONENTES GERAIS --- */
+    .card {
+      background-color: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
       margin-bottom: 20px;
-      font-size: 1.1rem;
-      font-weight: bold;
+      border: 1px solid var(--border-color);
     }
+
+    h2, h3 { margin-top: 0; color: var(--primary-color); text-align: center; }
+    
+    .loading-overlay {
+      text-align: center;
+      padding: 40px;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      display: none;
+    }
+
+    /* --- VIEW SIMULADOR --- */
+    #simulador-view { display: none; }
+    #simulador-view.active { display: block; animation: fadeIn 0.4s; }
 
     .grid-container {
       display: grid;
-      grid-template-columns: repeat(10, 1fr);
-      gap: 5px;
-      margin-bottom: 20px;
+      gap: 6px;
+      margin: 20px auto;
+      max-width: 500px;
     }
 
     .grid-item {
@@ -117,590 +127,653 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      background-color: #f9f9f9;
       border: 1px solid #ccc;
       cursor: pointer;
-      border-radius: 5px;
+      border-radius: 8px;
       user-select: none;
-      font-size: 0.9em;
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #555;
+      transition: all 0.2s;
     }
 
-    /* Cores Específicas Mega */
-    .mega-theme .grid-item.selected {
-      background-color: #4CAF50;
+    .grid-item:hover { background-color: #eaeaea; }
+    .grid-item.selected {
+      background-color: var(--primary-color);
       color: white;
-      border-color: #4CAF50;
-    }
-    #result-mega h3 {
-      margin-top: 20px;
-      margin-bottom: 10px;
-      color: #0056b3;
-      border-bottom: 2px solid #007bff;
-      padding-bottom: 5px;
+      border-color: var(--primary-color);
+      transform: scale(1.05);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
 
-    /* Cores Específicas Dupla */
-    .dupla-theme .grid-item.selected {
-      background-color: #A61324;
-      color: white;
-      border-color: #A61324;
-    }
-    #result-dupla h3 {
-      margin-top: 20px;
-      margin-bottom: 10px;
-      color: #A61324;
-      border-bottom: 2px solid #A61324;
-      padding-bottom: 5px;
-    }
-
-    /* Cores Específicas Lotofácil */
-    .lotofacil-theme .grid-item.selected {
-      background-color: #930089;
-      color: white;
-      border-color: #930089;
-    }
-    #result-lotofacil h3 {
-      margin-top: 20px;
-      margin-bottom: 10px;
-      color: #930089;
-      border-bottom: 2px solid #930089;
-      padding-bottom: 5px;
-    }
-    #number-grid-lotofacil {
-      grid-template-columns: repeat(5, 1fr);
-      max-width: 300px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    /* Botões Gerais */
-    .button-container {
+    .action-buttons {
       display: flex;
       justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    button.action-btn {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      border: none;
-      color: white;
-      border-radius: 5px;
-      margin-top: 5px;
-    }
-
-    .btn-check { background-color: #007bff; }
-    .btn-clear { background-color: #dc3545; }
-
-    /* Resultados */
-    .result-container {
+      gap: 15px;
       margin-top: 20px;
-      font-size: 16px;
-      text-align: left;
-      line-height: 1.6;
     }
+    .action-btn { padding: 12px 24px; font-size: 1rem; color: white; }
+    .btn-check { background-color: #007bff; }
+    .btn-check:hover { background-color: #0056b3; }
+    .btn-clear { background-color: #dc3545; }
+    .btn-clear:hover { background-color: #a71d2a; }
 
-    .sorteio-section {
-      margin-bottom: 30px;
-    }
-
+    .result-container { margin-top: 25px; line-height: 1.6; }
     .result-list {
-      max-height: 120px;
+      max-height: 150px;
       overflow-y: auto;
-      background-color: #f9f9f9;
-      padding: 5px;
+      background-color: #f8f9fa;
+      padding: 10px;
       border: 1px solid #eee;
       border-radius: 5px;
       font-size: 0.9em;
+      margin-bottom: 15px;
+    }
+
+    /* --- VIEW DASHBOARD --- */
+    #dashboard-view { display: none; }
+    #dashboard-view.active { display: block; animation: fadeIn 0.4s; }
+
+    .dashboard-controls {
+      display: flex; justify-content: center; gap: 10px; align-items: center;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+    select {
+      padding: 10px; border-radius: 5px; border: 1px solid #ccc;
+      font-size: 1rem; outline: none; background: white;
+    }
+
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .full-width { grid-column: 1 / -1; }
+
+    .bolinha-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;}
+    .bolinha {
+      background-color: var(--primary-color); color: white; width: 45px; height: 45px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+      font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    /* Heatmap */
+    .heatmap-wrapper { max-width: 600px; margin: 0 auto; }
+    .heatmap-grid {
+      display: grid; gap: 6px; padding: 15px;
+      background-color: #222; border-radius: 10px;
+    }
+    .heatmap-cell {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1rem; border-radius: 6px; color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8); cursor: pointer; transition: transform 0.2s;
+    }
+    .heatmap-cell:hover { transform: scale(1.15); z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .legend-bar {
+      height: 12px; border-radius: 6px; margin: 15px 0 5px;
+      background: linear-gradient(to right, rgb(30, 144, 255), rgb(44, 44, 44), rgb(255, 71, 87));
+    }
+    .legend-labels { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); font-weight: bold;}
+
+    /* Top Stats */
+    .stats-box { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; text-align: center; }
+    .stat-col { flex: 1; min-width: 180px; }
+    .stat-col h4 { margin: 0 0 10px 0; color: var(--text-color); font-size: 1.05rem;}
+    .hot-label { color: #e74c3c; font-size: 1.2rem; font-weight: bold; }
+    .cold-label { color: #3498db; font-size: 1.2rem; font-weight: bold; }
+    .delayed-label { color: #f39c12; font-size: 1.2rem; font-weight: bold; }
+
+    canvas { width: 100% !important; max-height: 350px; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 768px) {
+      .dash-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
-
 <body>
+
   <div class="container">
-    
-    <!-- Navegação das Abas -->
-    <div class="tabs">
-      <button id="btn-mega" class="tab-button active" onclick="switchTab('mega')">Mega Sena</button>
-      <button id="btn-dupla" class="tab-button" onclick="switchTab('dupla')">Dupla Sena</button>
-      <button id="btn-lotofacil" class="tab-button" onclick="switchTab('lotofacil')">Lotofácil</button>
+    <!-- NAVEGAÇÃO -->
+    <div class="header-nav">
+      <div class="lottery-tabs">
+        <button class="lot-btn active" data-lot="mega">Mega-Sena</button>
+        <button class="lot-btn" data-lot="dupla">Dupla Sena</button>
+        <button class="lot-btn" data-lot="lotofacil">Lotofácil</button>
+      </div>
+      <div class="mode-tabs">
+        <button class="mode-btn active" data-mode="simulador">Simulador</button>
+        <button class="mode-btn" data-mode="dashboard">Dashboard Analítico</button>
+      </div>
     </div>
 
-    <!-- ABA MEGA SENA -->
-    <div id="tab-mega" class="tab-content active">
-      <img src="mega-sena-logo.png" alt="Mega Sena" class="lottery-logo" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x60/006633/FFFFFF?text=MEGA-SENA';" />
-      <div class="subtitle">Simulador</div>
-      <div id="number-grid-mega" class="grid-container mega-theme"></div>
-      <p>Números selecionados: <span id="selected-count-mega">0</span> de 20</p>
-      
-      <div class="button-container">
-        <button class="action-btn btn-check" onclick="checkResultsMega()">Verificar Resultado</button>
-        <button class="action-btn btn-clear" onclick="clearSelectionMega()">Limpar Seleção</button>
+    <div id="loading" class="loading-overlay">⏳ Carregando dados da loteria...</div>
+
+    <!-- VIEW: SIMULADOR -->
+    <div id="simulador-view" class="active">
+      <div class="card">
+        <h2 id="sim-title">Simulador Mega-Sena</h2>
+        <p style="text-align: center; margin-bottom: 5px;" id="sim-subtitle">Selecione entre 6 e 20 números</p>
+        <p style="text-align: center; font-weight: bold;">Selecionados: <span id="sim-count">0</span></p>
+
+        <div id="sim-grid" class="grid-container"></div>
+        
+        <div class="action-buttons">
+          <button class="action-btn btn-check" onclick="checkSimulator()">Verificar Resultado</button>
+          <button class="action-btn btn-clear" onclick="clearSimulator()">Limpar</button>
+        </div>
+
+        <div id="sim-result" class="result-container"></div>
       </div>
-      
-      <div id="result-mega" class="result-container"></div>
     </div>
 
-    <!-- ABA DUPLA SENA -->
-    <div id="tab-dupla" class="tab-content">
-      <img src="dupla-sena-logo.png" alt="Dupla Sena" class="lottery-logo" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x60/A61324/FFFFFF?text=DUPLA+SENA';" />
-      <div class="subtitle">Simulador</div>
-      <div id="number-grid-dupla" class="grid-container dupla-theme"></div>
-      <p>Números selecionados: <span id="selected-count-dupla">0</span> de 15</p>
-      
-      <div class="button-container">
-        <button class="action-btn btn-check" onclick="checkResultsDupla()">Verificar Resultado</button>
-        <button class="action-btn btn-clear" onclick="clearSelectionDupla()">Limpar Seleção</button>
+    <!-- VIEW: DASHBOARD -->
+    <div id="dashboard-view">
+      <div class="dashboard-controls">
+        <label for="dash-filter"><strong>Analisar Histórico:</strong></label>
+        <select id="dash-filter" onchange="updateDashboard()">
+          <option value="0">Todos os Concursos (Completo)</option>
+          <option value="10">Últimos 10 Concursos</option>
+          <option value="50">Últimos 50 Concursos</option>
+          <option value="100">Últimos 100 Concursos</option>
+          <option value="500">Últimos 500 Concursos</option>
+        </select>
+        <span id="dash-info-count" style="color: var(--text-muted); font-size: 0.9rem;"></span>
       </div>
-      
-      <div id="result-dupla" class="result-container"></div>
-    </div>
 
-    <!-- ABA LOTOFÁCIL -->
-    <div id="tab-lotofacil" class="tab-content">
-      <img src="lotofacil-logo.png" alt="Lotofácil" class="lottery-logo" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x60/930089/FFFFFF?text=LOTOFÁCIL';" />
-      <div class="subtitle">Simulador</div>
-      <div id="number-grid-lotofacil" class="grid-container lotofacil-theme"></div>
-      <p>Números selecionados: <span id="selected-count-lotofacil">0</span> (escolha entre 15 e 20)</p>
-      
-      <div class="button-container">
-        <button class="action-btn btn-check" onclick="checkResultsLotofacil()">Verificar Resultado</button>
-        <button class="action-btn btn-clear" onclick="clearSelectionLotofacil()">Limpar Seleção</button>
+      <div class="dash-grid">
+        <!-- Último Sorteio -->
+        <div class="card full-width">
+          <h2>Último Sorteio Realizado</h2>
+          <p id="dash-last-info" style="text-align: center; color: var(--text-muted); margin-top: -10px;"></p>
+          <div id="dash-last-draw" class="bolinha-container"></div>
+        </div>
+
+        <!-- Heatmap -->
+        <div class="card full-width">
+          <h2>Mapa de Frequência (Calor)</h2>
+          <div class="heatmap-wrapper">
+            <div id="dash-heatmap" class="heatmap-grid"></div>
+            <div class="legend-bar"></div>
+            <div class="legend-labels">
+              <span style="color: #3498db;">❄️ Frias</span>
+              <span>Médias</span>
+              <span style="color: #e74c3c;">Quentes 🔥</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Texto -->
+        <div class="card stats-box full-width">
+          <div class="stat-col">
+            <h4>🔥 Mais Sorteadas</h4>
+            <div id="dash-hot" class="hot-label"></div>
+          </div>
+          <div class="stat-col">
+            <h4>❄️ Menos Sorteadas</h4>
+            <div id="dash-cold" class="cold-label"></div>
+          </div>
+          <div class="stat-col">
+            <h4>⏳ Mais Atrasadas</h4>
+            <div id="dash-delayed" class="delayed-label"></div>
+          </div>
+        </div>
+
+        <!-- Gráfico Frequencia -->
+        <div class="card full-width">
+          <h2>Frequência por Dezena</h2>
+          <canvas id="chart-freq"></canvas>
+        </div>
+
+        <!-- Gráfico Pares/Ímpares -->
+        <div class="card full-width">
+          <h2>Distribuição Pares x Ímpares</h2>
+          <canvas id="chart-pi"></canvas>
+        </div>
       </div>
-      
-      <div id="result-lotofacil" class="result-container"></div>
     </div>
 
   </div>
 
   <script>
-    // ==========================================
-    // LÓGICA DAS ABAS
-    // ==========================================
-    function switchTab(tabName) {
-      // Ocultar todas as abas
-      document.getElementById('tab-mega').classList.remove('active');
-      document.getElementById('tab-dupla').classList.remove('active');
-      document.getElementById('tab-lotofacil').classList.remove('active');
-
-      document.getElementById('btn-mega').classList.remove('active');
-      document.getElementById('btn-dupla').classList.remove('active');
-      document.getElementById('btn-lotofacil').classList.remove('active');
-
-      // Mostrar aba ativa
-      document.getElementById(`tab-${tabName}`).classList.add('active');
-      document.getElementById(`btn-${tabName}`).classList.add('active');
-
-      // Mudar a cor do tema do PWA dependendo da aba
-      const metaTheme = document.getElementById('theme-color-meta');
-      if (tabName === 'mega') {
-        metaTheme.setAttribute('content', '#4CAF50');
-      } else if (tabName === 'dupla') {
-        metaTheme.setAttribute('content', '#A61324');
-      } else if (tabName === 'lotofacil') {
-        metaTheme.setAttribute('content', '#930089');
+    /* ==========================================
+       CONFIGURAÇÕES E ESTADOS GERAIS
+       ========================================== */
+    const CONFIG = {
+      mega: {
+        name: 'Mega-Sena', color: '#209869',
+        totalNums: 60, cols: 10, minSel: 6, maxSel: 20, drawSize: 6,
+        api: 'https://loteriascaixa-api.herokuapp.com/api/megasena'
+      },
+      dupla: {
+        name: 'Dupla Sena', color: '#A61324',
+        totalNums: 50, cols: 10, minSel: 6, maxSel: 15, drawSize: 6,
+        api: 'https://loteriascaixa-api.herokuapp.com/api/duplasena'
+      },
+      lotofacil: {
+        name: 'Lotofácil', color: '#930089',
+        totalNums: 25, cols: 5, minSel: 15, maxSel: 20, drawSize: 15,
+        api: 'https://loteriascaixa-api.herokuapp.com/api/lotofacil'
       }
-    }
+    };
 
-    // ==========================================
-    // LÓGICA MEGA SENA
-    // ==========================================
-    const numberGridMega = document.getElementById("number-grid-mega");
-    const selectedCountSpanMega = document.getElementById("selected-count-mega");
-    const resultDivMega = document.getElementById("result-mega");
+    let state = {
+      lottery: 'mega',
+      mode: 'simulador',
+      selectedNumbers: [],
+      dataCache: { mega: null, dupla: null, lotofacil: null },
+      charts: { freq: null, pi: null }
+    };
 
-    let selectedNumbersMega = [];
-    const allGridItemsMega = [];
-    const API_URL_MEGA = "https://loteriascaixa-api.herokuapp.com/api/megasena";
+    // Previne que o loading se esconda prematuramente ou fique preso se clicarmos rápido
+    let activeFetches = 0; 
 
-    // Inicializa a grade da Mega (1 a 60)
-    for (let i = 1; i <= 60; i++) {
-      const item = document.createElement("div");
-      item.className = "grid-item";
-      item.textContent = i.toString().padStart(2, "0");
-      item.dataset.number = i;
-
-      item.addEventListener("click", () => toggleNumberMega(item));
-      numberGridMega.appendChild(item);
-      allGridItemsMega.push(item);
-    }
-
-    function toggleNumberMega(el) {
-      const num = parseInt(el.dataset.number);
-      const idx = selectedNumbersMega.indexOf(num);
-
-      if (idx >= 0) {
-        selectedNumbersMega.splice(idx, 1);
-        el.classList.remove("selected");
-      } else {
-        if (selectedNumbersMega.length >= 20) {
-          alert("Você pode selecionar no máximo 20 números.");
-          return;
-        }
-        selectedNumbersMega.push(num);
-        el.classList.add("selected");
-      }
-      selectedCountSpanMega.textContent = selectedNumbersMega.length;
-    }
-
-    function clearSelectionMega() {
-      selectedNumbersMega = [];
-      allGridItemsMega.forEach(i => i.classList.remove("selected"));
-      selectedCountSpanMega.textContent = 0;
-      resultDivMega.innerHTML = "";
-    }
-
-    async function carregarHistoricoMega() {
-      try {
-        const res = await fetch(API_URL_MEGA);
-        if (!res.ok) throw new Error("Erro na API");
-
-        const data = await res.json();
-        const concursos = data.map(c => ({
-          concurso: c.concurso,
-          data: c.data,
-          dezenas: c.dezenas.map(n => parseInt(n))
-        }));
-
-        localStorage.setItem("megaSenaCache", JSON.stringify(concursos));
-        return concursos;
-      } catch (e) {
-        console.warn("Usando cache local (Mega)", e);
-        const cache = localStorage.getItem("megaSenaCache");
-        return cache ? JSON.parse(cache) : [];
-      }
-    }
-
-    async function checkResultsMega() {
-      if (selectedNumbersMega.length < 6 || selectedNumbersMega.length > 20) {
-        alert("Selecione entre 6 e 20 números para a Mega Sena.");
-        return;
-      }
-
-      resultDivMega.innerHTML = "<p><em>A analisar os sorteios da Mega Sena...</em></p>";
-      const historico = await carregarHistoricoMega();
-
-      if (historico.length === 0) {
-        alert("Não foi possível carregar os dados da Mega Sena.");
-        resultDivMega.innerHTML = "";
-        return;
-      }
-
-      let quadra = [];
-      let quina = [];
-      let sena = [];
-
-      historico.forEach(c => {
-        const acertos = c.dezenas.filter(n => selectedNumbersMega.includes(n)).length;
-        if (acertos === 4) quadra.push(c);
-        if (acertos === 5) quina.push(c);
-        if (acertos === 6) sena.push(c);
+    /* ==========================================
+       INICIALIZAÇÃO E NAVEGAÇÃO
+       ========================================== */
+    document.addEventListener("DOMContentLoaded", () => {
+      // Event Listeners para abas
+      document.querySelectorAll('.lot-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => setLottery(e.target.dataset.lot));
+      });
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => setMode(e.target.dataset.mode));
       });
 
-      function listaResultados(lista) {
-        if (lista.length === 0) return "<em>Nenhum</em>";
-        return `<div class="result-list">${lista.map(c => `Concurso ${c.concurso} (${c.data})`).join("<br>")}</div>`;
+      // Carrega inicial
+      applyTheme();
+      renderSimulatorGrid();
+      loadData(state.lottery);
+    });
+
+    function setLottery(lotKey) {
+      if(state.lottery === lotKey) return;
+      state.lottery = lotKey;
+      state.selectedNumbers = []; // Reseta seleção ao mudar loteria
+      
+      // Atualiza UI Tabs
+      document.querySelectorAll('.lot-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`.lot-btn[data-lot="${lotKey}"]`).classList.add('active');
+
+      applyTheme();
+      renderSimulatorGrid();
+      clearSimulatorUI();
+      loadData(lotKey);
+    }
+
+    function setMode(modeKey) {
+      if(state.mode === modeKey) return;
+      state.mode = modeKey;
+
+      // Atualiza UI Tabs
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector(`.mode-btn[data-mode="${modeKey}"]`).classList.add('active');
+
+      // Alterna Views
+      document.getElementById('simulador-view').classList.remove('active');
+      document.getElementById('dashboard-view').classList.remove('active');
+      document.getElementById(`${modeKey}-view`).classList.add('active');
+
+      if(modeKey === 'dashboard') {
+        updateDashboard();
+      }
+    }
+
+    function applyTheme() {
+      const conf = CONFIG[state.lottery];
+      document.documentElement.style.setProperty('--primary-color', conf.color);
+      document.getElementById('theme-color-meta').setAttribute('content', conf.color);
+
+      // Atualiza textos do simulador
+      document.getElementById('sim-title').innerText = `Simulador ${conf.name}`;
+      document.getElementById('sim-subtitle').innerText = `Selecione entre ${conf.minSel} e ${conf.maxSel} números`;
+    }
+
+    /* ==========================================
+       GERENCIAMENTO DE DADOS (API)
+       ========================================== */
+    async function loadData(lotKey) {
+      // Se já temos os dados prontos no estado
+      if(state.dataCache[lotKey] && state.dataCache[lotKey].length > 0) {
+        if(activeFetches <= 0) document.getElementById('loading').style.display = 'none';
+        if(state.lottery === lotKey && state.mode === 'dashboard') updateDashboard();
+        return;
       }
 
-      resultDivMega.innerHTML = `
-        <h3>Resultado</h3>
-        <p><strong>Quadra:</strong> ${quadra.length} vezes</p>
-        ${listaResultados(quadra)}
-
-        <p><strong>Quina:</strong> ${quina.length} vezes</p>
-        ${listaResultados(quina)}
-
-        <p><strong>Sena:</strong> ${sena.length} vezes</p>
-        ${listaResultados(sena)}
-      `;
-    }
-
-    // ==========================================
-    // LÓGICA DUPLA SENA
-    // ==========================================
-    const numberGridDupla = document.getElementById("number-grid-dupla");
-    const selectedCountSpanDupla = document.getElementById("selected-count-dupla");
-    const resultDivDupla = document.getElementById("result-dupla");
-
-    let selectedNumbersDupla = [];
-    const allGridItemsDupla = [];
-    const API_URL_DUPLA = "https://loteriascaixa-api.herokuapp.com/api/duplasena";
-
-    // Inicializa a grade da Dupla (1 a 50)
-    for (let i = 1; i <= 50; i++) {
-      const item = document.createElement("div");
-      item.className = "grid-item";
-      item.textContent = i.toString().padStart(2, "0");
-      item.dataset.number = i;
-
-      item.addEventListener("click", () => toggleNumberDupla(item));
-      numberGridDupla.appendChild(item);
-      allGridItemsDupla.push(item);
-    }
-
-    function toggleNumberDupla(el) {
-      const num = parseInt(el.dataset.number);
-      const idx = selectedNumbersDupla.indexOf(num);
-
-      if (idx >= 0) {
-        selectedNumbersDupla.splice(idx, 1);
-        el.classList.remove("selected");
-      } else {
-        if (selectedNumbersDupla.length >= 15) {
-          alert("Pode selecionar no máximo 15 números para a Dupla Sena.");
-          return;
-        }
-        selectedNumbersDupla.push(num);
-        el.classList.add("selected");
-      }
-      selectedCountSpanDupla.textContent = selectedNumbersDupla.length;
-    }
-
-    function clearSelectionDupla() {
-      selectedNumbersDupla = [];
-      allGridItemsDupla.forEach(i => i.classList.remove("selected"));
-      selectedCountSpanDupla.textContent = 0;
-      resultDivDupla.innerHTML = "";
-    }
-
-    async function carregarHistoricoDupla() {
+      const conf = CONFIG[lotKey];
+      activeFetches++;
+      document.getElementById('loading').style.display = 'block';
+      
       try {
-        const res = await fetch(API_URL_DUPLA);
-        if (!res.ok) throw new Error("Erro na API");
-
-        const data = await res.json();
-        const concursos = data.map(c => {
-          const todasDezenas = c.dezenas ? c.dezenas.map(n => parseInt(n)) : [];
+        const res = await fetch(conf.api);
+        if(!res.ok) throw new Error("API Error");
+        const rawData = await res.json();
+        
+        // Normaliza os dados
+        const normalized = rawData.map(c => {
+          let dezenasFormatadas = c.dezenas ? c.dezenas.map(n => parseInt(n, 10)) : [];
           return {
             concurso: c.concurso,
             data: c.data,
-            dezenas1: todasDezenas.slice(0, 6),
-            dezenas2: todasDezenas.slice(6, 12)
+            todas: dezenasFormatadas,
+            // Dupla Sena tem 2 sorteios (12 dezenas totais enviadas pela API)
+            sorteio1: lotKey === 'dupla' ? dezenasFormatadas.slice(0, 6) : dezenasFormatadas,
+            sorteio2: lotKey === 'dupla' ? dezenasFormatadas.slice(6, 12) : []
           };
         });
 
-        localStorage.setItem("duplaSenaCache", JSON.stringify(concursos));
-        return concursos;
-      } catch (e) {
-        console.warn("A usar cache local (Dupla)", e);
-        const cache = localStorage.getItem("duplaSenaCache");
-        return cache ? JSON.parse(cache) : [];
-      }
-    }
-
-    async function checkResultsDupla() {
-      if (selectedNumbersDupla.length < 6 || selectedNumbersDupla.length > 15) {
-        alert("Selecione entre 6 e 15 números para a Dupla Sena.");
-        return;
-      }
-
-      resultDivDupla.innerHTML = "<p><em>A analisar os sorteios da Dupla Sena...</em></p>";
-      const historico = await carregarHistoricoDupla();
-
-      if (historico.length === 0) {
-        alert("Não foi possível carregar os dados da Dupla Sena.");
-        resultDivDupla.innerHTML = "";
-        return;
-      }
-
-      let resSorteio1 = { terno: [], quadra: [], quina: [], sena: [] };
-      let resSorteio2 = { terno: [], quadra: [], quina: [], sena: [] };
-
-      historico.forEach(c => {
-        if (c.dezenas1.length > 0) {
-          const acertos1 = c.dezenas1.filter(n => selectedNumbersDupla.includes(n)).length;
-          if (acertos1 === 3) resSorteio1.terno.push(c);
-          if (acertos1 === 4) resSorteio1.quadra.push(c);
-          if (acertos1 === 5) resSorteio1.quina.push(c);
-          if (acertos1 === 6) resSorteio1.sena.push(c);
+        state.dataCache[lotKey] = normalized;
+        
+      } catch (err) {
+        console.warn(`Erro ao carregar ${conf.name}, tentando cache local.`, err);
+        const local = localStorage.getItem(`cache_${lotKey}`);
+        let parsed = local ? JSON.parse(local) : [];
+        
+        // Migração de estrutura do cache (Protege contra "sorteio1 nulo" em caches antigos)
+        if (parsed.length > 0 && !parsed[0].sorteio1) {
+            parsed = parsed.map(c => {
+                let d = c.dezenas || c.todas || [];
+                return {
+                    concurso: c.concurso,
+                    data: c.data,
+                    todas: d,
+                    sorteio1: lotKey === 'dupla' ? d.slice(0, 6) : d,
+                    sorteio2: lotKey === 'dupla' ? d.slice(6, 12) : []
+                };
+            });
+        }
+        state.dataCache[lotKey] = parsed;
+      } finally {
+        activeFetches--;
+        if (activeFetches <= 0) {
+            activeFetches = 0;
+            document.getElementById('loading').style.display = 'none';
         }
 
-        if (c.dezenas2.length > 0) {
-          const acertos2 = c.dezenas2.filter(n => selectedNumbersDupla.includes(n)).length;
-          if (acertos2 === 3) resSorteio2.terno.push(c);
-          if (acertos2 === 4) resSorteio2.quadra.push(c);
-          if (acertos2 === 5) resSorteio2.quina.push(c);
-          if (acertos2 === 6) resSorteio2.sena.push(c);
+        if(state.dataCache[lotKey] && state.dataCache[lotKey].length > 0) {
+          localStorage.setItem(`cache_${lotKey}`, JSON.stringify(state.dataCache[lotKey]));
         }
-      });
-
-      function listaResultados(lista) {
-        if (lista.length === 0) return "<em>Nenhum</em>";
-        return `<div class="result-list">${lista.map(c => `Concurso ${c.concurso} (${c.data})`).join("<br>")}</div>`;
+        
+        // Renderiza apenas se ainda estivermos na loteria que acabou de carregar
+        if(state.lottery === lotKey && state.mode === 'dashboard') {
+            updateDashboard();
+        }
       }
-
-      const possuiSegundoSorteio = historico.some(c => c.dezenas2 && c.dezenas2.length > 0);
-
-      resultDivDupla.innerHTML = `
-        <div class="sorteio-section">
-          <h3>1º Sorteio</h3>
-          <p><strong>Terno (3):</strong> ${resSorteio1.terno.length} vezes</p>
-          ${listaResultados(resSorteio1.terno)}
-          <p><strong>Quadra (4):</strong> ${resSorteio1.quadra.length} vezes</p>
-          ${listaResultados(resSorteio1.quadra)}
-          <p><strong>Quina (5):</strong> ${resSorteio1.quina.length} vezes</p>
-          ${listaResultados(resSorteio1.quina)}
-          <p><strong>Sena (6):</strong> ${resSorteio1.sena.length} vezes</p>
-          ${listaResultados(resSorteio1.sena)}
-        </div>
-
-        <div class="sorteio-section">
-          <h3>2º Sorteio</h3>
-          ${!possuiSegundoSorteio ? 
-            "<p><em>Aviso: A API utilizada não enviou os dados referentes ao 2º sorteio.</em></p>" :
-            `
-            <p><strong>Terno (3):</strong> ${resSorteio2.terno.length} vezes</p>
-            ${listaResultados(resSorteio2.terno)}
-            <p><strong>Quadra (4):</strong> ${resSorteio2.quadra.length} vezes</p>
-            ${listaResultados(resSorteio2.quadra)}
-            <p><strong>Quina (5):</strong> ${resSorteio2.quina.length} vezes</p>
-            ${listaResultados(resSorteio2.quina)}
-            <p><strong>Sena (6):</strong> ${resSorteio2.sena.length} vezes</p>
-            ${listaResultados(resSorteio2.sena)}
-            `
-          }
-        </div>
-      `;
     }
 
-    // ==========================================
-    // LÓGICA LOTOFÁCIL
-    // ==========================================
-    const numberGridLotofacil = document.getElementById("number-grid-lotofacil");
-    const selectedCountSpanLotofacil = document.getElementById("selected-count-lotofacil");
-    const resultDivLotofacil = document.getElementById("result-lotofacil");
+    /* ==========================================
+       LÓGICA DO SIMULADOR
+       ========================================== */
+    function renderSimulatorGrid() {
+      const conf = CONFIG[state.lottery];
+      const grid = document.getElementById('sim-grid');
+      grid.innerHTML = '';
+      grid.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
 
-    let selectedNumbersLotofacil = [];
-    const allGridItemsLotofacil = [];
-    const API_URL_LOTOFACIL = "https://loteriascaixa-api.herokuapp.com/api/lotofacil";
-
-    // Inicializa a grade da Lotofácil (1 a 25)
-    for (let i = 1; i <= 25; i++) {
-      const item = document.createElement("div");
-      item.className = "grid-item";
-      item.textContent = i.toString().padStart(2, "0");
-      item.dataset.number = i;
-
-      item.addEventListener("click", () => toggleNumberLotofacil(item));
-      numberGridLotofacil.appendChild(item);
-      allGridItemsLotofacil.push(item);
+      for (let i = 1; i <= conf.totalNums; i++) {
+        const el = document.createElement('div');
+        el.className = 'grid-item';
+        el.textContent = String(i).padStart(2, '0');
+        el.dataset.num = i;
+        el.onclick = () => toggleSimNumber(i, el);
+        grid.appendChild(el);
+      }
     }
 
-    function toggleNumberLotofacil(el) {
-      const num = parseInt(el.dataset.number);
-      const idx = selectedNumbersLotofacil.indexOf(num);
+    function toggleSimNumber(num, el) {
+      const conf = CONFIG[state.lottery];
+      const idx = state.selectedNumbers.indexOf(num);
 
-      if (idx >= 0) {
-        selectedNumbersLotofacil.splice(idx, 1);
-        el.classList.remove("selected");
+      if (idx > -1) {
+        state.selectedNumbers.splice(idx, 1);
+        el.classList.remove('selected');
       } else {
-        if (selectedNumbersLotofacil.length >= 20) {
-          alert("Você pode selecionar no máximo 20 números na Lotofácil.");
+        if (state.selectedNumbers.length >= conf.maxSel) {
+          alert(`Você pode selecionar no máximo ${conf.maxSel} números na ${conf.name}.`);
           return;
         }
-        selectedNumbersLotofacil.push(num);
-        el.classList.add("selected");
+        state.selectedNumbers.push(num);
+        el.classList.add('selected');
       }
-      selectedCountSpanLotofacil.textContent = selectedNumbersLotofacil.length;
+      document.getElementById('sim-count').innerText = state.selectedNumbers.length;
     }
 
-    function clearSelectionLotofacil() {
-      selectedNumbersLotofacil = [];
-      allGridItemsLotofacil.forEach(i => i.classList.remove("selected"));
-      selectedCountSpanLotofacil.textContent = 0;
-      resultDivLotofacil.innerHTML = "";
+    function clearSimulator() {
+      state.selectedNumbers = [];
+      clearSimulatorUI();
     }
 
-    async function carregarHistoricoLotofacil() {
-      try {
-        const res = await fetch(API_URL_LOTOFACIL);
-        if (!res.ok) throw new Error("Erro na API");
-
-        const data = await res.json();
-        const concursos = data.map(c => ({
-          concurso: c.concurso,
-          data: c.data,
-          dezenas: c.dezenas.map(n => parseInt(n))
-        }));
-
-        localStorage.setItem("lotofacilCache", JSON.stringify(concursos));
-        return concursos;
-      } catch (e) {
-        console.warn("Usando cache local (Lotofácil)", e);
-        const cache = localStorage.getItem("lotofacilCache");
-        return cache ? JSON.parse(cache) : [];
-      }
+    function clearSimulatorUI() {
+      document.querySelectorAll('#sim-grid .grid-item').forEach(el => el.classList.remove('selected'));
+      document.getElementById('sim-count').innerText = '0';
+      document.getElementById('sim-result').innerHTML = '';
     }
 
-    async function checkResultsLotofacil() {
-      if (selectedNumbersLotofacil.length < 15 || selectedNumbersLotofacil.length > 20) {
-        alert("Selecione entre 15 e 20 números para a Lotofácil.");
+    function checkSimulator() {
+      const conf = CONFIG[state.lottery];
+      const selected = state.selectedNumbers;
+      
+      if (selected.length < conf.minSel) {
+        alert(`Selecione pelo menos ${conf.minSel} números para a ${conf.name}.`);
         return;
       }
 
-      resultDivLotofacil.innerHTML = "<p><em>A analisar os sorteios da Lotofácil...</em></p>";
-      const historico = await carregarHistoricoLotofacil();
-
-      if (historico.length === 0) {
-        alert("Não foi possível carregar os dados da Lotofácil.");
-        resultDivLotofacil.innerHTML = "";
+      const historico = state.dataCache[state.lottery];
+      if (!historico || historico.length === 0) {
+        alert("Dados do histórico ainda não carregados ou indisponíveis.");
         return;
       }
 
-      let acertos11 = [];
-      let acertos12 = [];
-      let acertos13 = [];
-      let acertos14 = [];
-      let acertos15 = [];
+      const resDiv = document.getElementById('sim-result');
+      resDiv.innerHTML = "<p><em>Analisando...</em></p>";
 
-      historico.forEach(c => {
-        const acertos = c.dezenas.filter(n => selectedNumbersLotofacil.includes(n)).length;
-        if (acertos === 11) acertos11.push(c);
-        if (acertos === 12) acertos12.push(c);
-        if (acertos === 13) acertos13.push(c);
-        if (acertos === 14) acertos14.push(c);
-        if (acertos === 15) acertos15.push(c);
+      // Lógicas específicas por loteria
+      if(state.lottery === 'mega') {
+        let quadra=[], quina=[], sena=[];
+        historico.forEach(c => {
+          let hits = c.sorteio1.filter(n => selected.includes(n)).length;
+          if(hits === 4) quadra.push(c);
+          if(hits === 5) quina.push(c);
+          if(hits === 6) sena.push(c);
+        });
+        resDiv.innerHTML = `
+          <h3>Resultado Histórico</h3>
+          <p><strong>Quadra (4):</strong> ${quadra.length} vezes</p> ${formatResultList(quadra)}
+          <p><strong>Quina (5):</strong> ${quina.length} vezes</p> ${formatResultList(quina)}
+          <p><strong>Sena (6):</strong> ${sena.length} vezes</p> ${formatResultList(sena)}
+        `;
+      } 
+      else if(state.lottery === 'dupla') {
+        let s1={terno:[], quadra:[], quina:[], sena:[]};
+        let s2={terno:[], quadra:[], quina:[], sena:[]};
+        
+        historico.forEach(c => {
+          let hits1 = c.sorteio1.filter(n => selected.includes(n)).length;
+          if(hits1===3) s1.terno.push(c); if(hits1===4) s1.quadra.push(c);
+          if(hits1===5) s1.quina.push(c); if(hits1===6) s1.sena.push(c);
+
+          if(c.sorteio2.length > 0) {
+            let hits2 = c.sorteio2.filter(n => selected.includes(n)).length;
+            if(hits2===3) s2.terno.push(c); if(hits2===4) s2.quadra.push(c);
+            if(hits2===5) s2.quina.push(c); if(hits2===6) s2.sena.push(c);
+          }
+        });
+
+        resDiv.innerHTML = `
+          <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:250px;">
+              <h3>1º Sorteio</h3>
+              <p><strong>Terno:</strong> ${s1.terno.length}</p> ${formatResultList(s1.terno)}
+              <p><strong>Quadra:</strong> ${s1.quadra.length}</p> ${formatResultList(s1.quadra)}
+              <p><strong>Quina:</strong> ${s1.quina.length}</p> ${formatResultList(s1.quina)}
+              <p><strong>Sena:</strong> ${s1.sena.length}</p> ${formatResultList(s1.sena)}
+            </div>
+            <div style="flex:1; min-width:250px;">
+              <h3>2º Sorteio</h3>
+              <p><strong>Terno:</strong> ${s2.terno.length}</p> ${formatResultList(s2.terno)}
+              <p><strong>Quadra:</strong> ${s2.quadra.length}</p> ${formatResultList(s2.quadra)}
+              <p><strong>Quina:</strong> ${s2.quina.length}</p> ${formatResultList(s2.quina)}
+              <p><strong>Sena:</strong> ${s2.sena.length}</p> ${formatResultList(s2.sena)}
+            </div>
+          </div>
+        `;
+      }
+      else if(state.lottery === 'lotofacil') {
+        let a11=[], a12=[], a13=[], a14=[], a15=[];
+        historico.forEach(c => {
+          let hits = c.sorteio1.filter(n => selected.includes(n)).length;
+          if(hits===11) a11.push(c); if(hits===12) a12.push(c);
+          if(hits===13) a13.push(c); if(hits===14) a14.push(c);
+          if(hits===15) a15.push(c);
+        });
+        resDiv.innerHTML = `
+          <h3>Resultado Histórico</h3>
+          <p><strong>11 Acertos:</strong> ${a11.length}</p> ${formatResultList(a11)}
+          <p><strong>12 Acertos:</strong> ${a12.length}</p> ${formatResultList(a12)}
+          <p><strong>13 Acertos:</strong> ${a13.length}</p> ${formatResultList(a13)}
+          <p><strong>14 Acertos:</strong> ${a14.length}</p> ${formatResultList(a14)}
+          <p><strong>15 Acertos:</strong> ${a15.length}</p> ${formatResultList(a15)}
+        `;
+      }
+    }
+
+    function formatResultList(list) {
+      if(list.length === 0) return '';
+      return `<div class="result-list">${list.map(c => `Conc. ${c.concurso} (${c.data})`).join('<br>')}</div>`;
+    }
+
+    /* ==========================================
+       LÓGICA DO DASHBOARD
+       ========================================== */
+    function updateDashboard() {
+      const historico = state.dataCache[state.lottery];
+      
+      // Proteção para o caso dos dados não existirem
+      if(!historico || historico.length === 0) {
+        document.getElementById('dash-info-count').innerText = "(0 concursos - dados indisponíveis)";
+        return;
+      }
+
+      const conf = CONFIG[state.lottery];
+      const limite = parseInt(document.getElementById('dash-filter').value, 10);
+      const recortes = limite === 0 ? historico : historico.slice(0, limite);
+      
+      document.getElementById('dash-info-count').innerText = `(${recortes.length} concursos analisados)`;
+
+      // Render Último Sorteio
+      const last = recortes[0];
+      document.getElementById('dash-last-info').innerText = `Concurso: ${last.concurso} | Data: ${last.data}`;
+      const bolinhasBox = document.getElementById('dash-last-draw');
+      bolinhasBox.innerHTML = '';
+      [...last.sorteio1].sort((a,b)=>a-b).forEach(n => {
+        let b = document.createElement('div');
+        b.className = 'bolinha';
+        b.style.backgroundColor = conf.color;
+        b.innerText = String(n).padStart(2,'0');
+        bolinhasBox.appendChild(b);
       });
 
-      function listaResultados(lista) {
-        if (lista.length === 0) return "<em>Nenhum</em>";
-        return `<div class="result-list">${lista.map(c => `Concurso ${c.concurso} (${c.data})`).join("<br>")}</div>`;
+      // Cálculos
+      let freq = Array(conf.totalNums).fill(0);
+      let atrasos = Array(conf.totalNums).fill(-1);
+      let propPI = {};
+
+      recortes.forEach((sorteio, idx) => {
+        let pares=0, impares=0;
+        sorteio.sorteio1.forEach(n => {
+          freq[n-1]++;
+          if(n % 2 === 0) pares++; else impares++;
+          if(atrasos[n-1] === -1) atrasos[n-1] = idx;
+        });
+        let pKey = `${impares} Ímp. / ${pares} Par.`;
+        propPI[pKey] = (propPI[pKey] || 0) + 1;
+      });
+
+      for(let i=0; i<conf.totalNums; i++) {
+        if(atrasos[i] === -1) atrasos[i] = recortes.length;
       }
 
-      resultDivLotofacil.innerHTML = `
-        <div class="sorteio-section">
-          <h3>Resultado Lotofácil</h3>
-          <p><strong>11 Acertos:</strong> ${acertos11.length} vezes</p>
-          ${listaResultados(acertos11)}
-
-          <p><strong>12 Acertos:</strong> ${acertos12.length} vezes</p>
-          ${listaResultados(acertos12)}
-
-          <p><strong>13 Acertos:</strong> ${acertos13.length} vezes</p>
-          ${listaResultados(acertos13)}
-          
-          <p><strong>14 Acertos:</strong> ${acertos14.length} vezes</p>
-          ${listaResultados(acertos14)}
-          
-          <p><strong>15 Acertos:</strong> ${acertos15.length} vezes</p>
-          ${listaResultados(acertos15)}
-        </div>
-      `;
+      renderHeatmap(freq, atrasos, conf);
+      renderTopStats(freq, atrasos, conf);
+      renderCharts(freq, propPI, conf);
     }
 
-    // Registro do Service Worker corrigido
-    if ("serviceWorker" in navigator) {
-      // Verifica se a página está usando HTTP ou HTTPS antes de tentar registrar
-      if (window.location.protocol === 'https:' || window.location.protocol === 'http:') {
-        navigator.serviceWorker.register("./service-worker.js")
-          .catch(function(error) {
-            console.warn("Falha ao registrar o Service Worker:", error);
-          });
-      } else {
-        console.log("Registro de Service Worker ignorado. O protocolo atual (" + window.location.protocol + ") não é suportado no ambiente de visualização.");
+    function renderHeatmap(freq, atrasos, conf) {
+      const container = document.getElementById('dash-heatmap');
+      container.innerHTML = '';
+      container.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
+
+      const maxF = Math.max(...freq);
+      const minF = Math.min(...freq);
+      const range = maxF - minF || 1; // Evita div/0
+
+      const cFria = [30, 144, 255];
+      const cNeutra = [44, 44, 44];
+      const cQuente = [255, 71, 87];
+
+      for(let i=0; i<conf.totalNums; i++) {
+        let intensidade = (freq[i] - minF) / range;
+        let r, g, b;
+
+        if (intensidade <= 0.5) {
+          let f = intensidade * 2;
+          r = Math.round(cFria[0] + f * (cNeutra[0] - cFria[0]));
+          g = Math.round(cFria[1] + f * (cNeutra[1] - cFria[1]));
+          b = Math.round(cFria[2] + f * (cNeutra[2] - cFria[2]));
+        } else {
+          let f = (intensidade - 0.5) * 2;
+          r = Math.round(cNeutra[0] + f * (cQuente[0] - cNeutra[0]));
+          g = Math.round(cNeutra[1] + f * (cQuente[1] - cNeutra[1]));
+          b = Math.round(cNeutra[2] + f * (cQuente[2] - cNeutra[2]));
+        }
+
+        let cell = document.createElement('div');
+        cell.className = 'heatmap-cell';
+        cell.innerText = String(i+1).padStart(2,'0');
+        cell.style.backgroundColor = `rgb(${r},${g},${b})`;
+        cell.title = `Dezena ${i+1}\nSorteada ${freq[i]}x\nAtraso: ${atrasos[i]} concursos`;
+        
+        container.appendChild(cell);
       }
     }
+
+    function renderTopStats(freq, atrasos, conf) {
+      // Top Size: 6 para Mega/Dupla, 5 para Lotofacil (para não poluir)
+      const topSize = conf.drawSize > 6 ? 5 : 6; 
+
+      let sFreq = freq.map((v, i) => ({n: String(i+1).padStart(2,'0'), v})).sort((a,b)=>b.v-a.v);
+      let sAtraso = atrasos.map((v, i) => ({n: String(i+1).padStart(2,'0'), v})).sort((a,b)=>b.v-a.v);
+
+      document.getElementById('dash-hot').innerText = sFreq.slice(0, topSize).map(x=>x.n).join(' - ');
+      document.getElementById('dash-cold').innerText = sFreq.slice(-topSize).reverse().map(x=>x.n).join(' - ');
+      document.getElementById('dash-delayed').innerText = sAtraso.slice(0, topSize).map(x=>x.n).join(' - ');
+    }
+
+    function renderCharts(freq, propPI, conf) {
+      // Destrói anteriores
+      if(state.charts.freq) state.charts.freq.destroy();
+      if(state.charts.pi) state.charts.pi.destroy();
+
+      Chart.defaults.color = '#555';
+      Chart.defaults.font.family = 'Segoe UI';
+
+      // Gráfico Frequencia
+      const ctxF = document.getElementById('chart-freq').getContext('2d');
+      const labelsF = Array.from({length: conf.totalNums}, (_,i) => String(i+1).padStart(2,'0'));
+      state.charts.freq = new Chart(ctxF, {
+        type: 'bar',
+        data: { labels: labelsF, datasets: [{ label:'Vezes Sorteada', data:freq, backgroundColor: conf.color, borderRadius:4 }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}, ticks:{font:{size:9}}}} }
+      });
+
+      // Gráfico Par/Ímpar
+      const ctxPI = document.getElementById('chart-pi').getContext('2d');
+      const sortPI = Object.entries(propPI).sort((a,b) => b[1] - a[1]);
+      state.charts.pi = new Chart(ctxPI, {
+        type: 'bar',
+        data: { labels: sortPI.map(x=>x[0]), datasets: [{ label:'Ocorrências', data:sortPI.map(x=>x[1]), backgroundColor: '#3498db', borderRadius:4 }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}} }
+      });
+    }
+
   </script>
 </body>
 </html>
