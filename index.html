@@ -194,21 +194,23 @@
       font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
 
-    /* Heatmap */
+    /* Heatmap Claro */
     .heatmap-wrapper { max-width: 600px; margin: 0 auto; }
     .heatmap-grid {
       display: grid; gap: 6px; padding: 15px;
-      background-color: #222; border-radius: 10px;
+      background-color: #f8f9fa; /* Tema Claro */
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
     }
     .heatmap-cell {
       aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 1rem; border-radius: 6px; color: #fff;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.8); cursor: pointer; transition: transform 0.2s;
+      font-weight: 800; font-size: 1rem; border-radius: 6px; cursor: pointer; 
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .heatmap-cell:hover { transform: scale(1.15); z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .heatmap-cell:hover { transform: scale(1.15); z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
     .legend-bar {
       height: 12px; border-radius: 6px; margin: 15px 0 5px;
-      background: linear-gradient(to right, rgb(30, 144, 255), rgb(44, 44, 44), rgb(255, 71, 87));
+      background: linear-gradient(to right, rgb(30, 144, 255), rgb(230, 230, 230), rgb(255, 71, 87));
     }
     .legend-labels { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); font-weight: bold;}
 
@@ -245,13 +247,18 @@
       </div>
     </div>
 
+    <!-- LOGO DA LOTERIA -->
+    <div style="text-align: center; margin-bottom: 20px;">
+      <img id="lottery-logo" src="" alt="Logo da Loteria" style="max-height: 60px; max-width: 100%; display: none;" />
+    </div>
+
     <div id="loading" class="loading-overlay">⏳ Carregando dados da loteria...</div>
 
     <!-- VIEW: SIMULADOR -->
     <div id="simulador-view" class="active">
       <div class="card">
-        <h2 id="sim-title">Simulador Mega-Sena</h2>
-        <p style="text-align: center; margin-bottom: 5px;" id="sim-subtitle">Selecione entre 6 e 20 números</p>
+        <h2 id="sim-title">Simulador</h2>
+        <p style="text-align: center; margin-bottom: 5px;" id="sim-subtitle">Selecione os números</p>
         <p style="text-align: center; font-weight: bold;">Selecionados: <span id="sim-count">0</span></p>
 
         <div id="sim-grid" class="grid-container"></div>
@@ -340,16 +347,19 @@
     const CONFIG = {
       mega: {
         name: 'Mega-Sena', color: '#209869',
+        logo: 'mega-sena-logo.png', fallback: 'https://via.placeholder.com/300x60/209869/FFFFFF?text=MEGA-SENA',
         totalNums: 60, cols: 10, minSel: 6, maxSel: 20, drawSize: 6,
         api: 'https://loteriascaixa-api.herokuapp.com/api/megasena'
       },
       dupla: {
         name: 'Dupla Sena', color: '#A61324',
+        logo: 'dupla-sena-logo.png', fallback: 'https://via.placeholder.com/300x60/A61324/FFFFFF?text=DUPLA+SENA',
         totalNums: 50, cols: 10, minSel: 6, maxSel: 15, drawSize: 6,
         api: 'https://loteriascaixa-api.herokuapp.com/api/duplasena'
       },
       lotofacil: {
         name: 'Lotofácil', color: '#930089',
+        logo: 'lotofacil-logo.png', fallback: 'https://via.placeholder.com/300x60/930089/FFFFFF?text=LOTOFÁCIL',
         totalNums: 25, cols: 5, minSel: 15, maxSel: 20, drawSize: 15,
         api: 'https://loteriascaixa-api.herokuapp.com/api/lotofacil'
       }
@@ -363,14 +373,12 @@
       charts: { freq: null, pi: null }
     };
 
-    // Previne que o loading se esconda prematuramente ou fique preso se clicarmos rápido
     let activeFetches = 0; 
 
     /* ==========================================
        INICIALIZAÇÃO E NAVEGAÇÃO
        ========================================== */
     document.addEventListener("DOMContentLoaded", () => {
-      // Event Listeners para abas
       document.querySelectorAll('.lot-btn').forEach(btn => {
         btn.addEventListener('click', (e) => setLottery(e.target.dataset.lot));
       });
@@ -378,7 +386,6 @@
         btn.addEventListener('click', (e) => setMode(e.target.dataset.mode));
       });
 
-      // Carrega inicial
       applyTheme();
       renderSimulatorGrid();
       loadData(state.lottery);
@@ -387,9 +394,8 @@
     function setLottery(lotKey) {
       if(state.lottery === lotKey) return;
       state.lottery = lotKey;
-      state.selectedNumbers = []; // Reseta seleção ao mudar loteria
+      state.selectedNumbers = []; 
       
-      // Atualiza UI Tabs
       document.querySelectorAll('.lot-btn').forEach(b => b.classList.remove('active'));
       document.querySelector(`.lot-btn[data-lot="${lotKey}"]`).classList.add('active');
 
@@ -403,11 +409,9 @@
       if(state.mode === modeKey) return;
       state.mode = modeKey;
 
-      // Atualiza UI Tabs
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
       document.querySelector(`.mode-btn[data-mode="${modeKey}"]`).classList.add('active');
 
-      // Alterna Views
       document.getElementById('simulador-view').classList.remove('active');
       document.getElementById('dashboard-view').classList.remove('active');
       document.getElementById(`${modeKey}-view`).classList.add('active');
@@ -422,16 +426,23 @@
       document.documentElement.style.setProperty('--primary-color', conf.color);
       document.getElementById('theme-color-meta').setAttribute('content', conf.color);
 
-      // Atualiza textos do simulador
       document.getElementById('sim-title').innerText = `Simulador ${conf.name}`;
       document.getElementById('sim-subtitle').innerText = `Selecione entre ${conf.minSel} e ${conf.maxSel} números`;
+
+      // Atualiza o Logotipo dinamicamente
+      const logoEl = document.getElementById('lottery-logo');
+      logoEl.style.display = 'inline-block';
+      logoEl.src = conf.logo;
+      logoEl.onerror = function() {
+        this.onerror = null; // Previne loops infinitos
+        this.src = conf.fallback;
+      };
     }
 
     /* ==========================================
        GERENCIAMENTO DE DADOS (API)
        ========================================== */
     async function loadData(lotKey) {
-      // Se já temos os dados prontos no estado
       if(state.dataCache[lotKey] && state.dataCache[lotKey].length > 0) {
         if(activeFetches <= 0) document.getElementById('loading').style.display = 'none';
         if(state.lottery === lotKey && state.mode === 'dashboard') updateDashboard();
@@ -447,14 +458,12 @@
         if(!res.ok) throw new Error("API Error");
         const rawData = await res.json();
         
-        // Normaliza os dados
         const normalized = rawData.map(c => {
           let dezenasFormatadas = c.dezenas ? c.dezenas.map(n => parseInt(n, 10)) : [];
           return {
             concurso: c.concurso,
             data: c.data,
             todas: dezenasFormatadas,
-            // Dupla Sena tem 2 sorteios (12 dezenas totais enviadas pela API)
             sorteio1: lotKey === 'dupla' ? dezenasFormatadas.slice(0, 6) : dezenasFormatadas,
             sorteio2: lotKey === 'dupla' ? dezenasFormatadas.slice(6, 12) : []
           };
@@ -467,7 +476,6 @@
         const local = localStorage.getItem(`cache_${lotKey}`);
         let parsed = local ? JSON.parse(local) : [];
         
-        // Migração de estrutura do cache (Protege contra "sorteio1 nulo" em caches antigos)
         if (parsed.length > 0 && !parsed[0].sorteio1) {
             parsed = parsed.map(c => {
                 let d = c.dezenas || c.todas || [];
@@ -492,7 +500,6 @@
           localStorage.setItem(`cache_${lotKey}`, JSON.stringify(state.dataCache[lotKey]));
         }
         
-        // Renderiza apenas se ainda estivermos na loteria que acabou de carregar
         if(state.lottery === lotKey && state.mode === 'dashboard') {
             updateDashboard();
         }
@@ -565,7 +572,6 @@
       const resDiv = document.getElementById('sim-result');
       resDiv.innerHTML = "<p><em>Analisando...</em></p>";
 
-      // Lógicas específicas por loteria
       if(state.lottery === 'mega') {
         let quadra=[], quina=[], sena=[];
         historico.forEach(c => {
@@ -646,7 +652,6 @@
     function updateDashboard() {
       const historico = state.dataCache[state.lottery];
       
-      // Proteção para o caso dos dados não existirem
       if(!historico || historico.length === 0) {
         document.getElementById('dash-info-count').innerText = "(0 concursos - dados indisponíveis)";
         return;
@@ -658,7 +663,6 @@
       
       document.getElementById('dash-info-count').innerText = `(${recortes.length} concursos analisados)`;
 
-      // Render Último Sorteio
       const last = recortes[0];
       document.getElementById('dash-last-info').innerText = `Concurso: ${last.concurso} | Data: ${last.data}`;
       const bolinhasBox = document.getElementById('dash-last-draw');
@@ -671,7 +675,6 @@
         bolinhasBox.appendChild(b);
       });
 
-      // Cálculos
       let freq = Array(conf.totalNums).fill(0);
       let atrasos = Array(conf.totalNums).fill(-1);
       let propPI = {};
@@ -703,11 +706,12 @@
 
       const maxF = Math.max(...freq);
       const minF = Math.min(...freq);
-      const range = maxF - minF || 1; // Evita div/0
+      const range = maxF - minF || 1; 
 
-      const cFria = [30, 144, 255];
-      const cNeutra = [44, 44, 44];
-      const cQuente = [255, 71, 87];
+      // Ajustado para tema claro
+      const cFria = [30, 144, 255];   // Azul Frio
+      const cNeutra = [230, 230, 230]; // Cinzento Claro (Neutro)
+      const cQuente = [255, 71, 87];  // Vermelho Quente
 
       for(let i=0; i<conf.totalNums; i++) {
         let intensidade = (freq[i] - minF) / range;
@@ -729,6 +733,16 @@
         cell.className = 'heatmap-cell';
         cell.innerText = String(i+1).padStart(2,'0');
         cell.style.backgroundColor = `rgb(${r},${g},${b})`;
+        
+        // Contraste Dinâmico Inteligente: texto escuro para tons muito claros, branco para tons escuros
+        if (intensidade > 0.35 && intensidade < 0.65) {
+          cell.style.color = '#333';
+          cell.style.textShadow = 'none';
+        } else {
+          cell.style.color = '#fff';
+          cell.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
+        }
+
         cell.title = `Dezena ${i+1}\nSorteada ${freq[i]}x\nAtraso: ${atrasos[i]} concursos`;
         
         container.appendChild(cell);
@@ -736,7 +750,6 @@
     }
 
     function renderTopStats(freq, atrasos, conf) {
-      // Top Size: 6 para Mega/Dupla, 5 para Lotofacil (para não poluir)
       const topSize = conf.drawSize > 6 ? 5 : 6; 
 
       let sFreq = freq.map((v, i) => ({n: String(i+1).padStart(2,'0'), v})).sort((a,b)=>b.v-a.v);
@@ -748,14 +761,12 @@
     }
 
     function renderCharts(freq, propPI, conf) {
-      // Destrói anteriores
       if(state.charts.freq) state.charts.freq.destroy();
       if(state.charts.pi) state.charts.pi.destroy();
 
       Chart.defaults.color = '#555';
       Chart.defaults.font.family = 'Segoe UI';
 
-      // Gráfico Frequencia
       const ctxF = document.getElementById('chart-freq').getContext('2d');
       const labelsF = Array.from({length: conf.totalNums}, (_,i) => String(i+1).padStart(2,'0'));
       state.charts.freq = new Chart(ctxF, {
@@ -764,7 +775,6 @@
         options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}, ticks:{font:{size:9}}}} }
       });
 
-      // Gráfico Par/Ímpar
       const ctxPI = document.getElementById('chart-pi').getContext('2d');
       const sortPI = Object.entries(propPI).sort((a,b) => b[1] - a[1]);
       state.charts.pi = new Chart(ctxPI, {
