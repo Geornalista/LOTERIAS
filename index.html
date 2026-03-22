@@ -214,20 +214,47 @@
     }
     .legend-labels { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); font-weight: bold;}
 
-    /* Top Stats */
-    .stats-box { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; text-align: center; }
-    .stat-col { flex: 1; min-width: 180px; }
-    .stat-col h4 { margin: 0 0 10px 0; color: var(--text-color); font-size: 1.05rem;}
-    .hot-label { color: #e74c3c; font-size: 1.2rem; font-weight: bold; }
-    .cold-label { color: #3498db; font-size: 1.2rem; font-weight: bold; }
-    .delayed-label { color: #f39c12; font-size: 1.2rem; font-weight: bold; }
+    /* Top Stats - 3 Colunas */
+    .stats-box { 
+      display: grid; 
+      grid-template-columns: repeat(3, 1fr); 
+      gap: 15px; 
+      text-align: center;
+    }
+    .stat-col { 
+      padding: 10px;
+      background: #fafafa;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+    .stat-col h4 { margin: 0 0 10px 0; color: var(--text-color); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;}
+    .stat-values { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 5px; 
+      font-size: 1.1rem; 
+      font-weight: bold; 
+    }
+    .hot-label { color: #e74c3c; }
+    .cold-label { color: #3498db; }
+    .delayed-label { color: #f39c12; }
 
-    canvas { width: 100% !important; max-height: 350px; }
+    /* Containers de Gráficos com Altura Fixa para evitar "crescimento indiscriminado" */
+    .freq-chart-container {
+        height: 600px; 
+        position: relative;
+    }
+    .pi-chart-container {
+        height: 350px;
+        position: relative;
+    }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    @media (max-width: 768px) {
-      .dash-grid { grid-template-columns: 1fr; }
+    @media (max-width: 600px) {
+      .stats-box { grid-template-columns: 1fr; }
+      .freq-chart-container { height: 800px; }
+      .pi-chart-container { height: 450px; }
     }
   </style>
 </head>
@@ -309,31 +336,35 @@
         </div>
 
         <!-- Stats Texto -->
-        <div class="card stats-box full-width">
+        <div class="card full-width stats-box">
           <div class="stat-col">
             <h4>🔥 Mais Sorteadas</h4>
-            <div id="dash-hot" class="hot-label"></div>
+            <div id="dash-hot" class="stat-values hot-label"></div>
           </div>
           <div class="stat-col">
             <h4>❄️ Menos Sorteadas</h4>
-            <div id="dash-cold" class="cold-label"></div>
+            <div id="dash-cold" class="stat-values cold-label"></div>
           </div>
           <div class="stat-col">
             <h4>⏳ Mais Atrasadas</h4>
-            <div id="dash-delayed" class="delayed-label"></div>
+            <div id="dash-delayed" class="stat-values delayed-label"></div>
           </div>
         </div>
 
         <!-- Gráfico Frequencia -->
         <div class="card full-width">
           <h2>Frequência por Dezena</h2>
-          <canvas id="chart-freq"></canvas>
+          <div class="freq-chart-container">
+            <canvas id="chart-freq"></canvas>
+          </div>
         </div>
 
-        <!-- Gráfico Pares/Ímpares -->
+        <!-- Gráfico Pares/Ímpares (Corrigido) -->
         <div class="card full-width">
           <h2>Distribuição Pares x Ímpares</h2>
-          <canvas id="chart-pi"></canvas>
+          <div class="pi-chart-container">
+            <canvas id="chart-pi"></canvas>
+          </div>
         </div>
       </div>
     </div>
@@ -429,12 +460,11 @@
       document.getElementById('sim-title').innerText = `Simulador ${conf.name}`;
       document.getElementById('sim-subtitle').innerText = `Selecione entre ${conf.minSel} e ${conf.maxSel} números`;
 
-      // Atualiza o Logotipo dinamicamente
       const logoEl = document.getElementById('lottery-logo');
       logoEl.style.display = 'inline-block';
       logoEl.src = conf.logo;
       logoEl.onerror = function() {
-        this.onerror = null; // Previne loops infinitos
+        this.onerror = null;
         this.src = conf.fallback;
       };
     }
@@ -475,19 +505,6 @@
         console.warn(`Erro ao carregar ${conf.name}, tentando cache local.`, err);
         const local = localStorage.getItem(`cache_${lotKey}`);
         let parsed = local ? JSON.parse(local) : [];
-        
-        if (parsed.length > 0 && !parsed[0].sorteio1) {
-            parsed = parsed.map(c => {
-                let d = c.dezenas || c.todas || [];
-                return {
-                    concurso: c.concurso,
-                    data: c.data,
-                    todas: d,
-                    sorteio1: lotKey === 'dupla' ? d.slice(0, 6) : d,
-                    sorteio2: lotKey === 'dupla' ? d.slice(6, 12) : []
-                };
-            });
-        }
         state.dataCache[lotKey] = parsed;
       } finally {
         activeFetches--;
@@ -495,11 +512,9 @@
             activeFetches = 0;
             document.getElementById('loading').style.display = 'none';
         }
-
         if(state.dataCache[lotKey] && state.dataCache[lotKey].length > 0) {
           localStorage.setItem(`cache_${lotKey}`, JSON.stringify(state.dataCache[lotKey]));
         }
-        
         if(state.lottery === lotKey && state.mode === 'dashboard') {
             updateDashboard();
         }
@@ -528,13 +543,11 @@
     function toggleSimNumber(num, el) {
       const conf = CONFIG[state.lottery];
       const idx = state.selectedNumbers.indexOf(num);
-
       if (idx > -1) {
         state.selectedNumbers.splice(idx, 1);
         el.classList.remove('selected');
       } else {
         if (state.selectedNumbers.length >= conf.maxSel) {
-          alert(`Você pode selecionar no máximo ${conf.maxSel} números na ${conf.name}.`);
           return;
         }
         state.selectedNumbers.push(num);
@@ -557,17 +570,9 @@
     function checkSimulator() {
       const conf = CONFIG[state.lottery];
       const selected = state.selectedNumbers;
-      
-      if (selected.length < conf.minSel) {
-        alert(`Selecione pelo menos ${conf.minSel} números para a ${conf.name}.`);
-        return;
-      }
-
+      if (selected.length < conf.minSel) return;
       const historico = state.dataCache[state.lottery];
-      if (!historico || historico.length === 0) {
-        alert("Dados do histórico ainda não carregados ou indisponíveis.");
-        return;
-      }
+      if (!historico) return;
 
       const resDiv = document.getElementById('sim-result');
       resDiv.innerHTML = "<p><em>Analisando...</em></p>";
@@ -590,37 +595,32 @@
       else if(state.lottery === 'dupla') {
         let s1={terno:[], quadra:[], quina:[], sena:[]};
         let s2={terno:[], quadra:[], quina:[], sena:[]};
-        
         historico.forEach(c => {
           let hits1 = c.sorteio1.filter(n => selected.includes(n)).length;
           if(hits1===3) s1.terno.push(c); if(hits1===4) s1.quadra.push(c);
           if(hits1===5) s1.quina.push(c); if(hits1===6) s1.sena.push(c);
-
           if(c.sorteio2.length > 0) {
             let hits2 = c.sorteio2.filter(n => selected.includes(n)).length;
             if(hits2===3) s2.terno.push(c); if(hits2===4) s2.quadra.push(c);
             if(hits2===5) s2.quina.push(c); if(hits2===6) s2.sena.push(c);
           }
         });
-
-        resDiv.innerHTML = `
-          <div style="display:flex; gap:20px; flex-wrap:wrap;">
-            <div style="flex:1; min-width:250px;">
+        resDiv.innerHTML = `<div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:200px;">
               <h3>1º Sorteio</h3>
               <p><strong>Terno:</strong> ${s1.terno.length}</p> ${formatResultList(s1.terno)}
               <p><strong>Quadra:</strong> ${s1.quadra.length}</p> ${formatResultList(s1.quadra)}
               <p><strong>Quina:</strong> ${s1.quina.length}</p> ${formatResultList(s1.quina)}
               <p><strong>Sena:</strong> ${s1.sena.length}</p> ${formatResultList(s1.sena)}
             </div>
-            <div style="flex:1; min-width:250px;">
+            <div style="flex:1; min-width:200px;">
               <h3>2º Sorteio</h3>
               <p><strong>Terno:</strong> ${s2.terno.length}</p> ${formatResultList(s2.terno)}
               <p><strong>Quadra:</strong> ${s2.quadra.length}</p> ${formatResultList(s2.quadra)}
               <p><strong>Quina:</strong> ${s2.quina.length}</p> ${formatResultList(s2.quina)}
               <p><strong>Sena:</strong> ${s2.sena.length}</p> ${formatResultList(s2.sena)}
             </div>
-          </div>
-        `;
+          </div>`;
       }
       else if(state.lottery === 'lotofacil') {
         let a11=[], a12=[], a13=[], a14=[], a15=[];
@@ -630,14 +630,12 @@
           if(hits===13) a13.push(c); if(hits===14) a14.push(c);
           if(hits===15) a15.push(c);
         });
-        resDiv.innerHTML = `
-          <h3>Resultado Histórico</h3>
+        resDiv.innerHTML = `<h3>Resultado Histórico</h3>
           <p><strong>11 Acertos:</strong> ${a11.length}</p> ${formatResultList(a11)}
           <p><strong>12 Acertos:</strong> ${a12.length}</p> ${formatResultList(a12)}
           <p><strong>13 Acertos:</strong> ${a13.length}</p> ${formatResultList(a13)}
           <p><strong>14 Acertos:</strong> ${a14.length}</p> ${formatResultList(a14)}
-          <p><strong>15 Acertos:</strong> ${a15.length}</p> ${formatResultList(a15)}
-        `;
+          <p><strong>15 Acertos:</strong> ${a15.length}</p> ${formatResultList(a15)}`;
       }
     }
 
@@ -651,11 +649,7 @@
        ========================================== */
     function updateDashboard() {
       const historico = state.dataCache[state.lottery];
-      
-      if(!historico || historico.length === 0) {
-        document.getElementById('dash-info-count').innerText = "(0 concursos - dados indisponíveis)";
-        return;
-      }
+      if(!historico || historico.length === 0) return;
 
       const conf = CONFIG[state.lottery];
       const limite = parseInt(document.getElementById('dash-filter').value, 10);
@@ -703,64 +697,53 @@
       const container = document.getElementById('dash-heatmap');
       container.innerHTML = '';
       container.style.gridTemplateColumns = `repeat(${conf.cols}, 1fr)`;
-
       const maxF = Math.max(...freq);
       const minF = Math.min(...freq);
       const range = maxF - minF || 1; 
 
-      // Ajustado para tema claro
-      const cFria = [30, 144, 255];   // Azul Frio
-      const cNeutra = [230, 230, 230]; // Cinzento Claro (Neutro)
-      const cQuente = [255, 71, 87];  // Vermelho Quente
-
       for(let i=0; i<conf.totalNums; i++) {
         let intensidade = (freq[i] - minF) / range;
         let r, g, b;
-
         if (intensidade <= 0.5) {
           let f = intensidade * 2;
-          r = Math.round(cFria[0] + f * (cNeutra[0] - cFria[0]));
-          g = Math.round(cFria[1] + f * (cNeutra[1] - cFria[1]));
-          b = Math.round(cFria[2] + f * (cNeutra[2] - cFria[2]));
+          r = Math.round(30 + f * (230 - 30));
+          g = Math.round(144 + f * (230 - 144));
+          b = Math.round(255 + f * (230 - 255));
         } else {
           let f = (intensidade - 0.5) * 2;
-          r = Math.round(cNeutra[0] + f * (cQuente[0] - cNeutra[0]));
-          g = Math.round(cNeutra[1] + f * (cQuente[1] - cNeutra[1]));
-          b = Math.round(cNeutra[2] + f * (cQuente[2] - cNeutra[2]));
+          r = Math.round(230 + f * (255 - 230));
+          g = Math.round(230 + f * (71 - 230));
+          b = Math.round(230 + f * (87 - 230));
         }
 
         let cell = document.createElement('div');
         cell.className = 'heatmap-cell';
         cell.innerText = String(i+1).padStart(2,'0');
         cell.style.backgroundColor = `rgb(${r},${g},${b})`;
-        
-        // Contraste Dinâmico Inteligente: texto escuro para tons muito claros, branco para tons escuros
-        if (intensidade > 0.35 && intensidade < 0.65) {
-          cell.style.color = '#333';
-          cell.style.textShadow = 'none';
-        } else {
-          cell.style.color = '#fff';
-          cell.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
-        }
-
+        cell.style.color = (intensidade > 0.35 && intensidade < 0.65) ? '#333' : '#fff';
         cell.title = `Dezena ${i+1}\nSorteada ${freq[i]}x\nAtraso: ${atrasos[i]} concursos`;
-        
         container.appendChild(cell);
       }
     }
 
     function renderTopStats(freq, atrasos, conf) {
-      const topSize = conf.drawSize > 6 ? 5 : 6; 
+      const topSize = 5; 
 
       let sFreq = freq.map((v, i) => ({n: String(i+1).padStart(2,'0'), v})).sort((a,b)=>b.v-a.v);
       let sAtraso = atrasos.map((v, i) => ({n: String(i+1).padStart(2,'0'), v})).sort((a,b)=>b.v-a.v);
 
-      document.getElementById('dash-hot').innerText = sFreq.slice(0, topSize).map(x=>x.n).join(' - ');
-      document.getElementById('dash-cold').innerText = sFreq.slice(-topSize).reverse().map(x=>x.n).join(' - ');
-      document.getElementById('dash-delayed').innerText = sAtraso.slice(0, topSize).map(x=>x.n).join(' - ');
+      const hotDiv = document.getElementById('dash-hot');
+      hotDiv.innerHTML = sFreq.slice(0, topSize).map(x => `<div>${x.n} <small>(${x.v}x)</small></div>`).join('');
+
+      const coldDiv = document.getElementById('dash-cold');
+      coldDiv.innerHTML = sFreq.slice(-topSize).reverse().map(x => `<div>${x.n} <small>(${x.v}x)</small></div>`).join('');
+
+      const delayedDiv = document.getElementById('dash-delayed');
+      delayedDiv.innerHTML = sAtraso.slice(0, topSize).map(x => `<div>${x.n} <small>(${x.v}c)</small></div>`).join('');
     }
 
     function renderCharts(freq, propPI, conf) {
+      // Destruir gráficos anteriores para evitar vazamento de memória e sobreposição
       if(state.charts.freq) state.charts.freq.destroy();
       if(state.charts.pi) state.charts.pi.destroy();
 
@@ -769,18 +752,64 @@
 
       const ctxF = document.getElementById('chart-freq').getContext('2d');
       const labelsF = Array.from({length: conf.totalNums}, (_,i) => String(i+1).padStart(2,'0'));
+      
       state.charts.freq = new Chart(ctxF, {
         type: 'bar',
-        data: { labels: labelsF, datasets: [{ label:'Vezes Sorteada', data:freq, backgroundColor: conf.color, borderRadius:4 }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}, ticks:{font:{size:9}}}} }
+        data: { 
+          labels: labelsF, 
+          datasets: [{ 
+            label: 'Vezes Sorteada', 
+            data: freq, 
+            backgroundColor: conf.color, 
+            borderRadius: 4,
+            barThickness: 'flex'
+          }] 
+        },
+        options: { 
+          indexAxis: 'y', 
+          responsive: true, 
+          maintainAspectRatio: false, 
+          plugins: { 
+            legend: { display: false },
+          }, 
+          scales: { 
+            y: { 
+              grid: { display: false },
+              ticks: { font: { size: 11, weight: 'bold' } } 
+            },
+            x: {
+              beginAtZero: true,
+              grid: { color: '#eee' }
+            }
+          } 
+        }
       });
 
       const ctxPI = document.getElementById('chart-pi').getContext('2d');
       const sortPI = Object.entries(propPI).sort((a,b) => b[1] - a[1]);
+      
       state.charts.pi = new Chart(ctxPI, {
         type: 'bar',
-        data: { labels: sortPI.map(x=>x[0]), datasets: [{ label:'Ocorrências', data:sortPI.map(x=>x[1]), backgroundColor: '#3498db', borderRadius:4 }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}} }
+        data: { 
+            labels: sortPI.map(x=>x[0]), 
+            datasets: [{ 
+                label:'Ocorrências', 
+                data:sortPI.map(x=>x[1]), 
+                backgroundColor: '#3498db', 
+                borderRadius:4 
+            }] 
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, // Importante: agora controlado pelo container fixo
+            plugins: { 
+                legend: { display: false } 
+            }, 
+            scales: { 
+                x: { grid: { display: false } },
+                y: { beginAtZero: true }
+            } 
+        }
       });
     }
 
