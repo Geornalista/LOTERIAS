@@ -245,7 +245,7 @@
         position: relative;
     }
     .pi-chart-container {
-        height: 350px;
+        height: 250px; /* Reduzido levemente pois há poucas categorias (ex: 0/6, 1/5...) */
         position: relative;
     }
 
@@ -254,7 +254,7 @@
     @media (max-width: 600px) {
       .stats-box { grid-template-columns: 1fr; }
       .freq-chart-container { height: 800px; }
-      .pi-chart-container { height: 450px; }
+      .pi-chart-container { height: 300px; }
     }
   </style>
 </head>
@@ -359,7 +359,7 @@
           </div>
         </div>
 
-        <!-- Gráfico Pares/Ímpares (Corrigido) -->
+        <!-- Gráfico Pares/Ímpares -->
         <div class="card full-width">
           <h2>Distribuição Pares x Ímpares</h2>
           <div class="pi-chart-container">
@@ -796,18 +796,33 @@
                 label:'Ocorrências', 
                 data:sortPI.map(x=>x[1]), 
                 backgroundColor: '#3498db', 
-                borderRadius:4 
+                borderRadius:4,
+                barThickness: 'flex'
             }] 
         },
         options: { 
+            indexAxis: 'y', // Inverte os eixos para o gráfico ficar horizontal
             responsive: true, 
-            maintainAspectRatio: false, // Importante: agora controlado pelo container fixo
+            maintainAspectRatio: false, 
             plugins: { 
-                legend: { display: false } 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Ocorrências: ${context.raw}`;
+                        }
+                    }
+                }
             }, 
             scales: { 
-                x: { grid: { display: false } },
-                y: { beginAtZero: true }
+                y: { 
+                  grid: { display: false },
+                  ticks: { font: { weight: 'bold' } }
+                },
+                x: { 
+                  beginAtZero: true,
+                  grid: { color: '#eee' }
+                }
             } 
         }
       });
