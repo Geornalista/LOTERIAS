@@ -1,11 +1,13 @@
 name: Atualizar Dados das Loterias
 
-# Define quando essa ação vai rodar
 on:
   schedule:
-    # Roda todos os dias às 03:01 UTC (que equivale a 00:01 no horário de Brasília)
     - cron: '1 3 * * *'
-  workflow_dispatch: # Permite rodar o script manualmente clicando em um botão no GitHub
+  workflow_dispatch:
+
+# 1. ESTA É A CORREÇÃO PRINCIPAL: Dá permissão para o bot salvar os arquivos no repositório
+permissions:
+  contents: write
 
 jobs:
   atualizar-dados:
@@ -25,9 +27,15 @@ jobs:
           curl -sL "https://loteriascaixa-api.herokuapp.com/api/lotofacil" -o data/lotofacil.json
 
       - name: Fazer o commit das alterações
+        # 2. Script do git melhorado para evitar erros se os dados forem exatamente os mesmos
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add data/*.json
-          # O comando abaixo verifica se houve mudança nos dados. Se sim, faz o commit e o push.
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto: Atualização diária dos resultados das loterias" && git push)
+          
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Auto: Atualização diária dos resultados das loterias"
+            git push
+          else
+            echo "Nenhuma alteração encontrada nos dados. Nada a commitar."
+          fi
